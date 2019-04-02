@@ -44,10 +44,10 @@ test-results/*
 CMake*
 CTest*
 *.sln
+*.vs
 *.vcxproj*
 *.log
 [Tt]est*/
 tests
 Makefile
 .idea
-

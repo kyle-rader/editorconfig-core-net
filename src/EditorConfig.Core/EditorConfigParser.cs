@@ -33,16 +33,25 @@ namespace EditorConfig.Core
 		/// The editor config parser version in use, defaults to latest <see cref="EditorConfigParser.Version"/>
 		/// </summary>
 		public Version ParseVersion { get; private set; }
-		
+
+		/// <summary>
+		/// Indicates whether or not configFiles will be cached when read.
+		/// Useful for programs needing to get settings for large numbers of files
+		/// where the editor config files are not changing.
+		/// </summary>
+		public bool UseCaching { get; private set; }
+
 		/// <summary>
 		/// The EditorConfigParser locates all relevant editorconfig files and makes sure they are merged correctly.
 		/// </summary>
 		/// <param name="configFileName">The name of the file(s) holding the editorconfiguration values</param>
 		/// <param name="developmentVersion">Only used in testing, development to pass an older version to the parsing routine</param>
-		public EditorConfigParser(string configFileName = ".editorconfig", Version developmentVersion = null)
+		/// <param name="useCaching">Cache EditorConfigFiles internally to avoid re-parsing the same files. Useful for getting the setting for large numbers of files quickly.</param>
+		public EditorConfigParser(string configFileName = ".editorconfig", Version developmentVersion = null, bool useCaching = false)
 		{
 			ConfigFileName = configFileName ?? ".editorconfig";
 			ParseVersion = developmentVersion ?? Version;
+			UseCaching = useCaching;
 		}
 
 		/// <summary>
@@ -114,7 +123,7 @@ namespace EditorConfig.Core
 
 		private IEnumerable<EditorConfigFile> ParseConfigFilesTillRoot(IEnumerable<string> configFiles)
 		{
-			foreach (var configFile in configFiles.Select(f=> new EditorConfigFile(f)))
+			foreach (var configFile in configFiles.Select(GetEditorConfigFile))
 			{
 				yield return configFile;
 				if (configFile.IsRoot) yield break;
@@ -141,5 +150,39 @@ namespace EditorConfig.Core
 				dir = dirInfo.Parent.FullName;
 			} while (dir != root);
 		}
+
+		#region Caching
+		/// <summary>
+		/// Internal global cache.
+		/// </summary>
+		private Dictionary<string, EditorConfigFile> _cache = new Dictionary<string, EditorConfigFile>();
+
+		/// <summary>
+		/// Clears the global editor config file cache.
+		/// </summary>
+		public void ClearCache() => _cache.Clear();
+
+		/// <summary>
+		/// Creates a new EditorConfigFile, optionally returning one from the global cache.
+		/// </summary>
+		/// <typeparam name="TResult"></typeparam>
+		/// <param name="file"></param>
+		/// <param name="useCaching"></param>
+		/// <returns></returns>
+		private EditorConfigFile GetEditorConfigFile(string file)
+		{
+			if (!UseCaching)
+			{
+				return new EditorConfigFile(file);
+			}
+
+			if (!_cache.ContainsKey(file))
+			{
+				_cache.Add(file, new EditorConfigFile(file));
+			}
+
+			return _cache[file];
+		}
+		#endregion
 	}
 }

@@ -1,0 +1,15 @@
+﻿root = true
+
+[**/*]
+end_of_line = lf
+
+[*.md]
+indent_style = space
+indent_size = 3
+
+[*.cs]
+indent_style = space
+indent_size = 4
+
+[*.{bat,cmd}]
+end_of_line = crlf
